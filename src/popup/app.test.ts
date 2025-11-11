@@ -33,7 +33,7 @@ const mockChrome = {
 		update: vi.fn(),
 	},
 	storage: {
-		sync: {
+		local: {
 			onChanged: {
 				addListener: vi.fn(),
 				removeListener: vi.fn(),
@@ -335,13 +335,13 @@ describe("ReadingListPopup", () => {
 
 	describe("Storage change listener", () => {
 		it("removes listener in disconnectedCallback", () => {
-			// Create mock for chrome.storage.sync.onChanged.addListener
+			// Create mock for chrome.storage.local.onChanged.addListener
 			const addListenerSpy = vi.fn();
-			mockChrome.storage.sync.onChanged.addListener = addListenerSpy;
+			mockChrome.storage.local.onChanged.addListener = addListenerSpy;
 
-			// Create mock for chrome.storage.sync.onChanged.removeListener
+			// Create mock for chrome.storage.local.onChanged.removeListener
 			const removeListenerSpy = vi.fn();
-			mockChrome.storage.sync.onChanged.removeListener = removeListenerSpy;
+			mockChrome.storage.local.onChanged.removeListener = removeListenerSpy;
 
 			// Create new popup instance (connectedCallback is called)
 			const testPopup = document.createElement(

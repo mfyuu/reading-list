@@ -14,10 +14,10 @@ describe("ReadingListStorage", () => {
 		storage = new ReadingListStorage();
 		vi.clearAllMocks();
 		// Set default return values
-		mockChrome.storage.sync.get.mockResolvedValue({ items: [] });
-		mockChrome.storage.sync.set.mockResolvedValue(undefined);
-		mockChrome.storage.sync.remove.mockResolvedValue(undefined);
-		mockChrome.storage.sync.getBytesInUse.mockResolvedValue(0);
+		mockChrome.storage.local.get.mockResolvedValue({ items: [] });
+		mockChrome.storage.local.set.mockResolvedValue(undefined);
+		mockChrome.storage.local.remove.mockResolvedValue(undefined);
+		mockChrome.storage.local.getBytesInUse.mockResolvedValue(0);
 	});
 
 	describe("addItem", () => {
@@ -34,7 +34,7 @@ describe("ReadingListStorage", () => {
 			});
 			expect(item.id).toBeTruthy();
 			expect(item.addedAt).toBeGreaterThan(0);
-			expect(mockChrome.storage.sync.set).toHaveBeenCalledWith({
+			expect(mockChrome.storage.local.set).toHaveBeenCalledWith({
 				items: expect.arrayContaining([
 					expect.objectContaining({ url, title }),
 				]),
@@ -50,7 +50,7 @@ describe("ReadingListStorage", () => {
 				addedAt: Date.now() - 10000, // 10 seconds ago
 			};
 
-			mockChrome.storage.sync.get.mockResolvedValue({ items: [existingItem] });
+			mockChrome.storage.local.get.mockResolvedValue({ items: [existingItem] });
 
 			const item = await storage.addItem(url, "New Title");
 
@@ -86,7 +86,7 @@ describe("ReadingListStorage", () => {
 				addedAt: Date.now() - i,
 			}));
 
-			mockChrome.storage.sync.get.mockResolvedValue({ items });
+			mockChrome.storage.local.get.mockResolvedValue({ items });
 
 			await expect(
 				storage.addItem("https://example.com/new", "New Item"),
@@ -111,16 +111,16 @@ describe("ReadingListStorage", () => {
 				},
 			];
 
-			mockChrome.storage.sync.get.mockResolvedValue({ items });
+			mockChrome.storage.local.get.mockResolvedValue({ items });
 
 			await storage.removeItem("item-1");
 
-			expect(mockChrome.storage.sync.set).toHaveBeenCalledWith({
+			expect(mockChrome.storage.local.set).toHaveBeenCalledWith({
 				items: expect.arrayContaining([
 					expect.objectContaining({ id: "item-2" }),
 				]),
 			});
-			expect(mockChrome.storage.sync.set).toHaveBeenCalledWith({
+			expect(mockChrome.storage.local.set).toHaveBeenCalledWith({
 				items: expect.not.arrayContaining([
 					expect.objectContaining({ id: "item-1" }),
 				]),
@@ -128,7 +128,7 @@ describe("ReadingListStorage", () => {
 		});
 
 		it("does not error when removing non-existent item", async () => {
-			mockChrome.storage.sync.get.mockResolvedValue({ items: [] });
+			mockChrome.storage.local.get.mockResolvedValue({ items: [] });
 
 			await expect(storage.removeItem("non-existent")).resolves.not.toThrow();
 		});
@@ -136,7 +136,7 @@ describe("ReadingListStorage", () => {
 
 	describe("getItems", () => {
 		it("returns empty array when empty", async () => {
-			mockChrome.storage.sync.get.mockResolvedValue({ items: [] });
+			mockChrome.storage.local.get.mockResolvedValue({ items: [] });
 
 			const items = await storage.getItems();
 
@@ -166,7 +166,7 @@ describe("ReadingListStorage", () => {
 				},
 			];
 
-			mockChrome.storage.sync.get.mockResolvedValue({ items });
+			mockChrome.storage.local.get.mockResolvedValue({ items });
 
 			const result = await storage.getItems();
 
@@ -199,7 +199,7 @@ describe("ReadingListStorage", () => {
 		];
 
 		beforeEach(() => {
-			mockChrome.storage.sync.get.mockResolvedValue({ items });
+			mockChrome.storage.local.get.mockResolvedValue({ items });
 		});
 
 		it("can search by partial title match", async () => {
@@ -249,7 +249,7 @@ describe("ReadingListStorage", () => {
 				addedAt: Date.now(),
 			}));
 
-			mockChrome.storage.sync.get.mockResolvedValue({ items });
+			mockChrome.storage.local.get.mockResolvedValue({ items });
 
 			const count = await storage.getItemCount();
 
@@ -257,7 +257,7 @@ describe("ReadingListStorage", () => {
 		});
 
 		it("returns 0 when empty", async () => {
-			mockChrome.storage.sync.get.mockResolvedValue({ items: [] });
+			mockChrome.storage.local.get.mockResolvedValue({ items: [] });
 
 			const count = await storage.getItemCount();
 
@@ -274,7 +274,7 @@ describe("ReadingListStorage", () => {
 				addedAt: Date.now() - i,
 			}));
 
-			mockChrome.storage.sync.get.mockResolvedValue({ items });
+			mockChrome.storage.local.get.mockResolvedValue({ items });
 
 			await expect(
 				storage.addItem("https://example.com/new", "New Item"),
@@ -289,7 +289,7 @@ describe("ReadingListStorage", () => {
 				addedAt: Date.now() - i,
 			}));
 
-			mockChrome.storage.sync.get.mockResolvedValue({ items });
+			mockChrome.storage.local.get.mockResolvedValue({ items });
 
 			await expect(
 				storage.addItem("https://example.com/new", "New Item"),
@@ -300,14 +300,14 @@ describe("ReadingListStorage", () => {
 	describe("Edge case tests", () => {
 		it("can handle long URLs over 8000 characters", async () => {
 			const longUrl = `https://example.com/path?query=${"a".repeat(8000)}`;
-			mockChrome.storage.sync.get.mockResolvedValue({ items: [] });
-			mockChrome.storage.sync.set.mockResolvedValue(undefined);
+			mockChrome.storage.local.get.mockResolvedValue({ items: [] });
+			mockChrome.storage.local.set.mockResolvedValue(undefined);
 
 			const result = await storage.addItem(longUrl, "Long URL Test");
 
 			expect(result).toBeDefined();
 			expect(result.url).toBe(longUrl);
-			expect(mockChrome.storage.sync.set).toHaveBeenCalled();
+			expect(mockChrome.storage.local.set).toHaveBeenCalled();
 		});
 
 		it("can handle URLs and titles with Japanese and emojis", async () => {
@@ -327,8 +327,8 @@ describe("ReadingListStorage", () => {
 			];
 
 			for (const item of specialUrls) {
-				mockChrome.storage.sync.get.mockResolvedValue({ items: [] });
-				mockChrome.storage.sync.set.mockResolvedValue(undefined);
+				mockChrome.storage.local.get.mockResolvedValue({ items: [] });
+				mockChrome.storage.local.set.mockResolvedValue(undefined);
 
 				const result = await storage.addItem(item.url, item.title);
 
@@ -349,8 +349,8 @@ describe("ReadingListStorage", () => {
 			];
 
 			for (const url of specialChars) {
-				mockChrome.storage.sync.get.mockResolvedValue({ items: [] });
-				mockChrome.storage.sync.set.mockResolvedValue(undefined);
+				mockChrome.storage.local.get.mockResolvedValue({ items: [] });
+				mockChrome.storage.local.set.mockResolvedValue(undefined);
 
 				const result = await storage.addItem(url, "Special URL");
 
@@ -360,8 +360,8 @@ describe("ReadingListStorage", () => {
 		});
 
 		it("can add items with empty title", async () => {
-			mockChrome.storage.sync.get.mockResolvedValue({ items: [] });
-			mockChrome.storage.sync.set.mockResolvedValue(undefined);
+			mockChrome.storage.local.get.mockResolvedValue({ items: [] });
+			mockChrome.storage.local.set.mockResolvedValue(undefined);
 
 			const result = await storage.addItem("https://example.com", "");
 
@@ -371,8 +371,8 @@ describe("ReadingListStorage", () => {
 
 		it("can handle very long titles (10000 characters)", async () => {
 			const longTitle = "a".repeat(10000);
-			mockChrome.storage.sync.get.mockResolvedValue({ items: [] });
-			mockChrome.storage.sync.set.mockResolvedValue(undefined);
+			mockChrome.storage.local.get.mockResolvedValue({ items: [] });
+			mockChrome.storage.local.set.mockResolvedValue(undefined);
 
 			const result = await storage.addItem("https://example.com", longTitle);
 
@@ -393,7 +393,7 @@ describe("ReadingListStorage", () => {
 			];
 
 			let deleteCount = 0;
-			mockChrome.storage.sync.get.mockImplementation(() => {
+			mockChrome.storage.local.get.mockImplementation(() => {
 				// Return empty array after first deletion
 				if (deleteCount > 0) {
 					return Promise.resolve({ items: [] });
@@ -401,7 +401,7 @@ describe("ReadingListStorage", () => {
 				return Promise.resolve({ items });
 			});
 
-			mockChrome.storage.sync.set.mockImplementation(() => {
+			mockChrome.storage.local.set.mockImplementation(() => {
 				deleteCount++;
 				return Promise.resolve(undefined);
 			});
@@ -428,7 +428,7 @@ describe("ReadingListStorage", () => {
 				addedAt: futureDate,
 			};
 
-			mockChrome.storage.sync.get.mockResolvedValue({ items: [item] });
+			mockChrome.storage.local.get.mockResolvedValue({ items: [item] });
 
 			const items = await storage.getItems();
 
@@ -445,7 +445,7 @@ describe("ReadingListStorage", () => {
 				addedAt: pastDate,
 			};
 
-			mockChrome.storage.sync.get.mockResolvedValue({ items: [item] });
+			mockChrome.storage.local.get.mockResolvedValue({ items: [item] });
 
 			const items = await storage.getItems();
 
@@ -464,8 +464,8 @@ describe("ReadingListStorage", () => {
 			];
 
 			for (const url of invalidUrls) {
-				mockChrome.storage.sync.get.mockResolvedValue({ items: [] });
-				mockChrome.storage.sync.set.mockResolvedValue(undefined);
+				mockChrome.storage.local.get.mockResolvedValue({ items: [] });
+				mockChrome.storage.local.set.mockResolvedValue(undefined);
 
 				// Verify invalid URLs throw error
 				await expect(storage.addItem(url, "Invalid URL Test")).rejects.toThrow(
@@ -475,7 +475,7 @@ describe("ReadingListStorage", () => {
 		});
 
 		it("does not error when trying to delete from empty storage", async () => {
-			mockChrome.storage.sync.get.mockResolvedValue({ items: [] });
+			mockChrome.storage.local.get.mockResolvedValue({ items: [] });
 
 			await expect(
 				storage.removeItem("non-existent-id"),

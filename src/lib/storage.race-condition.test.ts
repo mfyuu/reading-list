@@ -6,10 +6,12 @@ describe("Race Condition Tests", () => {
 	let storage: ReadingListStorage;
 	let mockChrome: {
 		storage: {
-			sync: {
+			local: {
 				get: ReturnType<typeof vi.fn>;
 				set: ReturnType<typeof vi.fn>;
 				remove: ReturnType<typeof vi.fn>;
+				getBytesInUse: ReturnType<typeof vi.fn>;
+				QUOTA_BYTES: number;
 				onChanged: {
 					addListener: ReturnType<typeof vi.fn>;
 					removeListener: ReturnType<typeof vi.fn>;
@@ -24,10 +26,12 @@ describe("Race Condition Tests", () => {
 	beforeEach(() => {
 		mockChrome = {
 			storage: {
-				sync: {
+				local: {
 					get: vi.fn(),
 					set: vi.fn(),
 					remove: vi.fn(),
+					getBytesInUse: vi.fn(),
+					QUOTA_BYTES: 5242880,
 					onChanged: {
 						addListener: vi.fn(),
 						removeListener: vi.fn(),
@@ -57,7 +61,7 @@ describe("Race Condition Tests", () => {
 				},
 			];
 
-			mockChrome.storage.sync.get.mockImplementation((_key, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_key, callback) => {
 				if (callback) {
 					setTimeout(() => callback({ items: initialItems }), 10);
 				} else {
@@ -68,7 +72,7 @@ describe("Race Condition Tests", () => {
 			});
 
 			let setCallCount = 0;
-			mockChrome.storage.sync.set.mockImplementation((_data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((_data, callback) => {
 				setCallCount++;
 				// Set different delays for each call to simulate race condition
 				const delay = setCallCount === 1 ? 50 : 10;
@@ -95,7 +99,7 @@ describe("Race Condition Tests", () => {
 			expect(result2.url).toBe("https://example.com/3");
 
 			// Verify set was called twice
-			expect(mockChrome.storage.sync.set).toHaveBeenCalledTimes(2);
+			expect(mockChrome.storage.local.set).toHaveBeenCalledTimes(2);
 		});
 
 		it("handles concurrent delete and add operations correctly", async () => {
@@ -114,7 +118,7 @@ describe("Race Condition Tests", () => {
 				},
 			];
 
-			mockChrome.storage.sync.get.mockImplementation((_key, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_key, callback) => {
 				if (callback) {
 					callback({ items: initialItems });
 				} else {
@@ -122,7 +126,7 @@ describe("Race Condition Tests", () => {
 				}
 			});
 
-			mockChrome.storage.sync.set.mockImplementation((_data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((_data, callback) => {
 				if (callback) {
 					setTimeout(() => callback(), 10);
 				} else {
@@ -150,7 +154,7 @@ describe("Race Condition Tests", () => {
 		it("prevents duplicate additions of the same URL", async () => {
 			const initialItems: ReadingItem[] = [];
 
-			mockChrome.storage.sync.get.mockImplementation((_key, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_key, callback) => {
 				if (callback) {
 					callback({ items: initialItems });
 				} else {
@@ -159,7 +163,7 @@ describe("Race Condition Tests", () => {
 			});
 
 			const addedItems: ReadingItem[] = [];
-			mockChrome.storage.sync.set.mockImplementation((data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((data, callback) => {
 				// Record added items
 				if (data.items) {
 					addedItems.push(...data.items);
@@ -219,7 +223,7 @@ describe("Race Condition Tests", () => {
 			];
 
 			let currentItems = [...initialItems];
-			mockChrome.storage.sync.get.mockImplementation((_key, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_key, callback) => {
 				if (callback) {
 					callback({ items: currentItems });
 				} else {
@@ -227,7 +231,7 @@ describe("Race Condition Tests", () => {
 				}
 			});
 
-			mockChrome.storage.sync.set.mockImplementation((data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((data, callback) => {
 				if (data.items) {
 					currentItems = data.items;
 				}
@@ -250,10 +254,10 @@ describe("Race Condition Tests", () => {
 			await Promise.all(deletePromises);
 
 			// Verify delete operations were called
-			expect(mockChrome.storage.sync.set).toHaveBeenCalled();
+			expect(mockChrome.storage.local.set).toHaveBeenCalled();
 
 			// Verify operations succeeded (specific item count may vary due to async processing)
-			expect(mockChrome.storage.sync.set.mock.calls.length).toBeGreaterThan(0);
+			expect(mockChrome.storage.local.set.mock.calls.length).toBeGreaterThan(0);
 		});
 
 		it("handles concurrent read and write operations correctly", async () => {
@@ -267,7 +271,7 @@ describe("Race Condition Tests", () => {
 			];
 
 			let currentItems = [...initialItems];
-			mockChrome.storage.sync.get.mockImplementation((_key, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_key, callback) => {
 				// Add delay to read operation
 				if (callback) {
 					setTimeout(() => callback({ items: currentItems }), 20);
@@ -278,7 +282,7 @@ describe("Race Condition Tests", () => {
 				}
 			});
 
-			mockChrome.storage.sync.set.mockImplementation((data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((data, callback) => {
 				currentItems = data.items;
 				if (callback) {
 					setTimeout(() => callback(), 10);
@@ -312,7 +316,7 @@ describe("Race Condition Tests", () => {
 		it("operation queuing works correctly", async () => {
 			const operations: string[] = [];
 
-			mockChrome.storage.sync.get.mockImplementation((_key, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_key, callback) => {
 				operations.push("get");
 				if (callback) {
 					setTimeout(() => callback({ items: [] }), 10);
@@ -323,7 +327,7 @@ describe("Race Condition Tests", () => {
 				}
 			});
 
-			mockChrome.storage.sync.set.mockImplementation((_data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((_data, callback) => {
 				operations.push("set");
 				if (callback) {
 					setTimeout(() => callback(), 10);

@@ -23,7 +23,7 @@ describe("Search box XSS protection", () => {
 		// Chrome API mock
 		const mockChrome = {
 			storage: {
-				sync: {
+				local: {
 					get: vi.fn().mockResolvedValue({ items: [] }),
 					set: vi.fn().mockResolvedValue(undefined),
 					onChanged: {

@@ -6,11 +6,12 @@ describe("Storage Rollback Tests", () => {
 	let storage: ReadingListStorage;
 	let mockChrome: {
 		storage: {
-			sync: {
+			local: {
 				get: ReturnType<typeof vi.fn>;
 				set: ReturnType<typeof vi.fn>;
 				remove: ReturnType<typeof vi.fn>;
 				getBytesInUse: ReturnType<typeof vi.fn>;
+				QUOTA_BYTES: number;
 				onChanged: {
 					addListener: ReturnType<typeof vi.fn>;
 					removeListener: ReturnType<typeof vi.fn>;
@@ -25,11 +26,12 @@ describe("Storage Rollback Tests", () => {
 	beforeEach(() => {
 		mockChrome = {
 			storage: {
-				sync: {
+				local: {
 					get: vi.fn(),
 					set: vi.fn(),
 					remove: vi.fn(),
 					getBytesInUse: vi.fn(),
+					QUOTA_BYTES: 5242880,
 					onChanged: {
 						addListener: vi.fn(),
 						removeListener: vi.fn(),
@@ -60,7 +62,7 @@ describe("Storage Rollback Tests", () => {
 				},
 			];
 
-			mockChrome.storage.sync.get.mockImplementation((_key, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_key, callback) => {
 				if (callback) {
 					callback({ items: initialItems });
 				} else {
@@ -69,7 +71,7 @@ describe("Storage Rollback Tests", () => {
 			});
 
 			// Simulate write failure
-			mockChrome.storage.sync.set.mockImplementation((_data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((_data, callback) => {
 				mockChrome.runtime.lastError = {
 					message: "Storage quota exceeded",
 				};
@@ -93,7 +95,7 @@ describe("Storage Rollback Tests", () => {
 			const initialItems: ReadingItem[] = [];
 			let setCallCount = 0;
 
-			mockChrome.storage.sync.get.mockImplementation((_key, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_key, callback) => {
 				if (callback) {
 					callback({ items: initialItems });
 				} else {
@@ -102,7 +104,7 @@ describe("Storage Rollback Tests", () => {
 			});
 
 			// Set to fail on second write
-			mockChrome.storage.sync.set.mockImplementation((_data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((_data, callback) => {
 				setCallCount++;
 				if (setCallCount === 2) {
 					mockChrome.runtime.lastError = {
@@ -146,7 +148,7 @@ describe("Storage Rollback Tests", () => {
 
 			const initialItems = [itemToDelete];
 
-			mockChrome.storage.sync.get.mockImplementation((_key, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_key, callback) => {
 				if (callback) {
 					callback({ items: initialItems });
 				} else {
@@ -155,7 +157,7 @@ describe("Storage Rollback Tests", () => {
 			});
 
 			// Simulate delete failure
-			mockChrome.storage.sync.set.mockImplementation((_data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((_data, callback) => {
 				mockChrome.runtime.lastError = {
 					message: "Permission denied",
 				};
@@ -199,7 +201,7 @@ describe("Storage Rollback Tests", () => {
 			let operationCount = 0;
 			const operationLog: string[] = [];
 
-			mockChrome.storage.sync.get.mockImplementation((_key, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_key, callback) => {
 				operationLog.push("get");
 				if (callback) {
 					callback({ items: [...initialItems] });
@@ -208,7 +210,7 @@ describe("Storage Rollback Tests", () => {
 				}
 			});
 
-			mockChrome.storage.sync.set.mockImplementation((_data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((_data, callback) => {
 				operationCount++;
 				operationLog.push(`set-${operationCount}`);
 
@@ -256,7 +258,7 @@ describe("Storage Rollback Tests", () => {
 			// Generate very long title (over 100KB)
 			const longTitle = "a".repeat(110000);
 
-			mockChrome.storage.sync.get.mockImplementation((_key, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_key, callback) => {
 				if (callback) {
 					callback({ items: [] });
 				} else {
@@ -264,7 +266,7 @@ describe("Storage Rollback Tests", () => {
 				}
 			});
 
-			mockChrome.storage.sync.set.mockImplementation((_data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((_data, callback) => {
 				mockChrome.runtime.lastError = {
 					message: "QUOTA_BYTES_PER_ITEM quota exceeded",
 				};
@@ -294,7 +296,7 @@ describe("Storage Rollback Tests", () => {
 				});
 			}
 
-			mockChrome.storage.sync.get.mockImplementation((_key, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_key, callback) => {
 				if (callback) {
 					callback({ items: existingItems });
 				} else {
@@ -302,7 +304,7 @@ describe("Storage Rollback Tests", () => {
 				}
 			});
 
-			mockChrome.storage.sync.set.mockImplementation((_data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((_data, callback) => {
 				mockChrome.runtime.lastError = {
 					message: "QUOTA_BYTES quota exceeded",
 				};
@@ -323,7 +325,7 @@ describe("Storage Rollback Tests", () => {
 		it("retry mechanism works on network errors", async () => {
 			let attemptCount = 0;
 
-			mockChrome.storage.sync.get.mockImplementation((_key, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_key, callback) => {
 				attemptCount++;
 				if (attemptCount < 3) {
 					// First two attempts fail
@@ -346,7 +348,7 @@ describe("Storage Rollback Tests", () => {
 				}
 			});
 
-			mockChrome.storage.sync.set.mockImplementation((_data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((_data, callback) => {
 				if (callback) {
 					callback();
 				} else {
@@ -385,7 +387,7 @@ describe("Storage Rollback Tests", () => {
 			];
 
 			let isFirstCall = true;
-			mockChrome.storage.sync.get.mockImplementation((_key, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_key, callback) => {
 				if (isFirstCall) {
 					isFirstCall = false;
 					if (callback) {
@@ -403,7 +405,7 @@ describe("Storage Rollback Tests", () => {
 				}
 			});
 
-			mockChrome.storage.sync.set.mockImplementation((_data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((_data, callback) => {
 				// Simulate sync conflict
 				mockChrome.runtime.lastError = {
 					message: "Sync conflict detected",

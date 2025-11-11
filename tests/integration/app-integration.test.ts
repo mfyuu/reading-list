@@ -15,14 +15,14 @@ describe("Integration Tests", () => {
 		storage = new ReadingListStorage();
 
 		// Set default mock behavior
-		mockChrome.storage.sync.get.mockImplementation((_keys, callback) => {
+		mockChrome.storage.local.get.mockImplementation((_keys, callback) => {
 			if (callback) {
 				callback({ items: [] });
 			}
 			return Promise.resolve({ items: [] });
 		});
 
-		mockChrome.storage.sync.set.mockImplementation((_items, callback) => {
+		mockChrome.storage.local.set.mockImplementation((_items, callback) => {
 			if (callback) {
 				callback();
 			}
@@ -45,7 +45,7 @@ describe("Integration Tests", () => {
 			expect(addedItem.addedAt).toBeDefined();
 
 			// 2. Get items
-			mockChrome.storage.sync.get.mockImplementation((_keys, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_keys, callback) => {
 				if (callback) {
 					callback({ items: [addedItem] });
 				}
@@ -66,7 +66,7 @@ describe("Integration Tests", () => {
 			expect(count).toBe(1);
 
 			// 5. Delete item
-			mockChrome.storage.sync.get.mockImplementation((_keys, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_keys, callback) => {
 				if (callback) {
 					callback({ items: [] });
 				}
@@ -90,7 +90,7 @@ describe("Integration Tests", () => {
 			});
 
 			// Update mock behavior
-			mockChrome.storage.sync.set.mockImplementation((data, callback) => {
+			mockChrome.storage.local.set.mockImplementation((data, callback) => {
 				if (data.items) {
 					items.push(...data.items);
 				}
@@ -114,13 +114,13 @@ describe("Integration Tests", () => {
 			const listener = vi.fn();
 
 			// Register listener
-			mockChrome.storage.sync.onChanged.addListener(listener);
+			mockChrome.storage.local.onChanged.addListener(listener);
 
 			// Change storage
 			await storage.addItem("https://example.com", "Example");
 
 			// Verify set was called
-			expect(mockChrome.storage.sync.set).toHaveBeenCalled();
+			expect(mockChrome.storage.local.set).toHaveBeenCalled();
 		});
 
 		it("tab operation APIs are called correctly", async () => {
@@ -181,7 +181,7 @@ describe("Integration Tests", () => {
 				addedAt: Date.now(),
 			}));
 
-			mockChrome.storage.sync.get.mockImplementation((_keys, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_keys, callback) => {
 				if (callback) {
 					callback({ items: items });
 				}
@@ -247,7 +247,7 @@ describe("Integration Tests", () => {
 				addedAt: Date.now() - i * 1000,
 			}));
 
-			mockChrome.storage.sync.get.mockImplementation((_keys, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_keys, callback) => {
 				if (callback) {
 					callback({ items: items });
 				}
@@ -271,7 +271,7 @@ describe("Integration Tests", () => {
 				addedAt: Date.now() - i * 1000,
 			}));
 
-			mockChrome.storage.sync.get.mockImplementation((_keys, callback) => {
+			mockChrome.storage.local.get.mockImplementation((_keys, callback) => {
 				if (callback) {
 					callback({ items: items });
 				}

@@ -166,6 +166,12 @@ export function createFullChromeMock() {
 				set: vi.fn(),
 				remove: vi.fn(),
 				clear: vi.fn(),
+				getBytesInUse: vi.fn(),
+				QUOTA_BYTES: 5242880,
+				onChanged: {
+					addListener: vi.fn(),
+					removeListener: vi.fn(),
+				},
 			},
 		},
 		tabs: {

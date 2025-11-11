@@ -253,7 +253,7 @@ export class ReadingListPopup extends LitElement {
 		super.disconnectedCallback();
 		// Cleanup storage listener to prevent memory leaks
 		if (this.storageListener) {
-			chrome.storage.sync.onChanged.removeListener(this.storageListener);
+			chrome.storage.local.onChanged.removeListener(this.storageListener);
 			this.storageListener = undefined;
 		}
 		// Cleanup storage instance
@@ -265,7 +265,7 @@ export class ReadingListPopup extends LitElement {
 		this.storageListener = () => {
 			this.loadItems(false); // Not initial load
 		};
-		chrome.storage.sync.onChanged.addListener(this.storageListener);
+		chrome.storage.local.onChanged.addListener(this.storageListener);
 	}
 
 	async loadItems(isInitialLoad = false) {

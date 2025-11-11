@@ -23,7 +23,7 @@ export class ReadingListStorage {
 				this.cache = null; // Clear cache
 			}
 		};
-		chrome.storage.sync.onChanged.addListener(this.storageListener);
+		chrome.storage.local.onChanged.addListener(this.storageListener);
 	}
 
 	async addItem(url: string, title: string): Promise<ReadingItem> {
@@ -37,7 +37,7 @@ export class ReadingListStorage {
 			const sanitizedTitle = this.sanitizeTitle(title);
 
 			// Get unsorted original data
-			const result = await chrome.storage.sync.get<StorageData>([STORAGE_KEY]);
+			const result = await chrome.storage.local.get<StorageData>([STORAGE_KEY]);
 			const items: ReadingItem[] = result[STORAGE_KEY] || [];
 
 			// Check for existing items (duplicate URL)
@@ -78,13 +78,18 @@ export class ReadingListStorage {
 		} catch (error) {
 			// Detailed handling of storage quota errors
 			if (error instanceof Error && error.name === "QuotaExceededError") {
-				const usage = await chrome.storage.sync.getBytesInUse();
-				const quota = chrome.storage.sync.QUOTA_BYTES;
+				const usage = await chrome.storage.local.getBytesInUse();
+				const quota = chrome.storage.local.QUOTA_BYTES;
+				console.error(
+					`Storage quota exceeded: ${usage}/${quota} bytes used`,
+					error,
+				);
 				throw new ReadingListError(
 					ErrorCode.STORAGE_FULL,
 					`Storage limit reached: ${usage}/${quota} bytes used`,
 				);
 			}
+			console.error("Failed to add item:", error);
 			throw error;
 		}
 	}
@@ -101,7 +106,7 @@ export class ReadingListStorage {
 		}
 
 		try {
-			const result = await chrome.storage.sync.get<StorageData>([STORAGE_KEY]);
+			const result = await chrome.storage.local.get<StorageData>([STORAGE_KEY]);
 			const items: ReadingItem[] = result[STORAGE_KEY] || [];
 			this.cache = items;
 			return this.sortByAddedAt(items);
@@ -136,10 +141,14 @@ export class ReadingListStorage {
 	private async saveItems(items: ReadingItem[]): Promise<void> {
 		try {
 			const data: StorageData = { [STORAGE_KEY]: items };
-			await chrome.storage.sync.set(data);
+			await chrome.storage.local.set(data);
 			this.cache = items;
 		} catch (error) {
 			console.error("Failed to save items to storage:", error);
+			// Re-throw QuotaExceededError to be handled by caller
+			if (error instanceof Error && error.name === "QuotaExceededError") {
+				throw error;
+			}
 			throw new ReadingListError(
 				ErrorCode.UNKNOWN_ERROR,
 				"Failed to save items",
@@ -189,7 +198,7 @@ export class ReadingListStorage {
 	cleanup() {
 		// Remove listener to prevent memory leaks
 		if (this.storageListener) {
-			chrome.storage.sync.onChanged.removeListener(this.storageListener);
+			chrome.storage.local.onChanged.removeListener(this.storageListener);
 			this.storageListener = undefined;
 		}
 		this.cache = null;
